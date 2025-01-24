@@ -34,4 +34,4 @@ Verification
 
 After running the script, verify that Go is installed correctly:
 
-go version
+    go version
