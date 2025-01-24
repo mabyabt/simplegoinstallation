@@ -1,0 +1,75 @@
+#!/bin/bash
+
+# Script to install Go on Raspbian OS with automatic architecture detection
+
+echo "Starting Go installation on Raspbian OS..."
+
+# 1. Define variables
+GO_VERSION="1.20.7"
+ARCH=$(uname -m)
+
+# Determine the correct Go tarball based on architecture
+if [ "$ARCH" == "armv6l" ]; then
+    GO_TAR="go${GO_VERSION}.linux-armv6l.tar.gz"
+elif [ "$ARCH" == "armv7l" ]; then
+    GO_TAR="go${GO_VERSION}.linux-armv7l.tar.gz"
+elif [ "$ARCH" == "aarch64" ]; then
+    GO_TAR="go${GO_VERSION}.linux-arm64.tar.gz"
+else
+    echo "Unsupported architecture: $ARCH"
+    exit 1
+fi
+
+GO_URL="https://go.dev/dl/${GO_TAR}"
+INSTALL_DIR="/usr/local"
+PROFILE_FILE="$HOME/.bashrc"
+
+# 2. Download the correct Go tarball
+echo "Downloading Go version ${GO_VERSION} for architecture ${ARCH}..."
+wget -q --show-progress $GO_URL -O $GO_TAR
+if [ $? -ne 0 ]; then
+    echo "Error downloading Go. Please check your internet connection and try again."
+    exit 1
+fi
+
+# 3. Remove any existing Go installation
+echo "Removing old Go installation (if any)..."
+sudo rm -rf ${INSTALL_DIR}/go
+
+# 4. Extract the tarball to /usr/local
+echo "Installing Go to ${INSTALL_DIR}..."
+sudo tar -C $INSTALL_DIR -xzf $GO_TAR
+if [ $? -ne 0 ]; then
+    echo "Error extracting Go tarball."
+    exit 1
+fi
+
+# 5. Add Go to PATH in the user's shell profile
+if ! grep -q 'export PATH=$PATH:/usr/local/go/bin' $PROFILE_FILE; then
+    echo "Adding Go to PATH in ${PROFILE_FILE}..."
+    echo 'export PATH=$PATH:/usr/local/go/bin' >> $PROFILE_FILE
+    echo 'export GOPATH=$HOME/go' >> $PROFILE_FILE
+    echo 'export PATH=$PATH:$GOPATH/bin' >> $PROFILE_FILE
+else
+    echo "Go is already in PATH."
+fi
+
+# 6. Reload the shell profile
+echo "Reloading shell profile..."
+source $PROFILE_FILE
+
+# 7. Verify the installation
+echo "Verifying Go installation..."
+go version
+if [ $? -eq 0 ]; then
+    echo "Go version $(go version) successfully installed!"
+else
+    echo "Go installation failed. Please check the script and try again."
+    exit 1
+fi
+
+# 8. Clean up
+echo "Cleaning up..."
+rm -f $GO_TAR
+
+echo "Installation complete. Enjoy using Go!"
